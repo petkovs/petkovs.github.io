@@ -1,0 +1,256 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Toward a Theory of Applications</title>
+    <meta name="description" content="A short position paper proposing: Applications = Domain Models + Workflows + Integration Contracts." />
+    <style>
+        :root {
+            --text: #111;
+            --muted: #555;
+            --bg: #fff;
+            --rule: #e7e7e7;
+            --link: #0a58ca;
+        }
+        html, body { background: var(--bg); color: var(--text); margin: 0; padding: 0; }
+        body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; line-height: 1.55; }
+        .wrap { max-width: 920px; margin: 0 auto; padding: 32px 18px 60px; }
+        header { margin-bottom: 26px; }
+        h1 { font-size: 2.1rem; line-height: 1.15; margin: 0 0 10px; }
+        .meta { color: var(--muted); font-size: 0.95rem; }
+        h2 { font-size: 1.45rem; margin: 34px 0 10px; }
+        h3 { font-size: 1.15rem; margin: 18px 0 6px; }
+        p { margin: 10px 0; }
+        ul { margin: 10px 0 10px 22px; }
+        li { margin: 6px 0; }
+        hr { border: 0; border-top: 1px solid var(--rule); margin: 26px 0; }
+        blockquote {
+            margin: 14px 0;
+            padding: 10px 14px;
+            border-left: 4px solid var(--rule);
+            color: var(--text);
+            background: #fafafa;
+        }
+        .equation {
+            font-weight: 650;
+            font-size: 1.05rem;
+            padding: 10px 14px;
+            border: 1px solid var(--rule);
+            border-radius: 10px;
+            background: #fcfcfc;
+            margin: 14px 0;
+        }
+        a { color: var(--link); text-decoration: none; }
+        a:hover { text-decoration: underline; }
+        footer { margin-top: 40px; color: var(--muted); font-size: 0.92rem; }
+        .small { font-size: 0.95rem; color: var(--muted); }
+    </style>
+
+    <!-- MathJax for LaTeX rendering -->
+    <script>
+        window.MathJax = {
+            tex: { inlineMath: [['\\(','\\)']], displayMath: [['\\[','\\]']] },
+            options: { skipHtmlTags: ['script','noscript','style','textarea','pre','code'] }
+        };
+    </script>
+    <script defer src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head>
+
+<body>
+<main class="wrap">
+    <header>
+        <h1>Toward a Theory of Applications</h1>
+        <div class="meta">
+            A short position paper · <span class="small">Version 0.1</span>
+        </div>
+    </header>
+
+    <h2>Abstract</h2>
+    <p>
+        Classical computer science offered a compact and influential definition of programs:
+        <em>data structures + algorithms = programs</em>.
+        This formulation was sufficient when applications were largely single-process, locally reasoned, and tightly
+        coupled to their execution environment.
+    </p>
+    <p>
+        Modern applications, however, are distributed, long-lived, integration-heavy, and dominated by business complexity rather than computational complexity.
+        In this paper, I propose a higher-level definition:
+    </p>
+
+    <div class="equation">Applications = Domain Models + Workflows + Integration Contracts</div>
+
+    <p>
+        This definition reframes applications as compositions of business meaning, temporal coordination, and semantic interaction.
+        It explains common architectural failure modes, clarifies responsibility boundaries, and supports reuse of domain capabilities across systems.
+    </p>
+
+    <h2>1. The Limits of the Classical Definition</h2>
+    <p>
+        Niklaus Wirth’s formulation—<em>data structures + algorithms = programs</em>—captures the essence of computation.
+        It implicitly assumes a closed system boundary, single ownership of state, synchronous execution, and limited concern for long-term evolution or integration.
+        These assumptions no longer hold for most software systems of economic relevance.
+    </p>
+    <p>
+        Modern applications interact continuously with other systems, evolve over years, encode business policy rather than algorithmic novelty,
+        and fail more often due to semantic mismatch than computational error. As a result, systems that are locally correct frequently fail at the system level.
+    </p>
+
+    <h2>2. Observing What Applications Actually Contain</h2>
+    <p>Successful long-lived systems—particularly in finance, logistics, healthcare, and regulated SaaS—share three recurring constituents:</p>
+    <ul>
+        <li><strong>Domain models</strong> that encode business meaning and invariants</li>
+        <li><strong>Workflows</strong> that coordinate actions across time and failure</li>
+        <li><strong>Integration contracts</strong> that define semantic interaction with other systems</li>
+    </ul>
+    <p>These elements exist regardless of programming language, architectural style, or deployment model.</p>
+
+    <h2>3. A Definition</h2>
+    <p>We define an <strong>application</strong> as the triple:</p>
+    <p>\[ A = \langle M, W, C \rangle \]</p>
+    <p>
+        where \(M\) is the domain model, \(W\) the set of workflows, and \(C\) the set of integration contracts.
+    </p>
+
+    <h3>3.1 Domain Models (M)</h3>
+    <p>The domain model represents what the system is about. Formally:</p>
+    <p>\[ M = \langle S, I, R \rangle \]</p>
+    <ul>
+        <li><strong>S</strong>: domain states (identity objects, aggregates, value objects)</li>
+        <li><strong>I</strong>: invariants that must always hold</li>
+        <li><strong>R</strong>: rules that transform state while preserving invariants</li>
+    </ul>
+    <p>
+        The domain model defines what is possible and what is forbidden, independent of transport, persistence, or user interface concerns.
+    </p>
+    <blockquote>
+        <strong>Illustrative example:</strong>
+        In a financial reconciliation system, a statement line may transition from <em>Unmatched</em> to <em>Matched</em> only if the sum of linked transactions equals its declared amount.
+        This constraint is a domain invariant. Whether matching is triggered manually, scheduled, or event-driven is irrelevant to the model itself.
+    </blockquote>
+
+    <h3>3.2 Workflows (W)</h3>
+    <p>
+        Workflows define what happens over time. Unlike classical algorithms, workflows interpret <em>intent</em> rather than raw input data, coordinate multiple domain operations,
+        and manage ordering, retries, compensation, and partial failure. They may span seconds, minutes, or days.
+    </p>
+    <p>One useful view is to model a workflow as a mapping:</p>
+    <p>\[
+        w : (Command \times Context \times State) \rightarrow (Effects \times Outcome)
+        \]</p>
+    <ul>
+        <li><strong>Command</strong> expresses intent (what is requested)</li>
+        <li><strong>Context</strong> captures environmental information (identity, time, policy)</li>
+        <li><strong>Effects</strong> are declared side effects (state transitions, emitted events, outgoing messages)</li>
+        <li><strong>Outcome</strong> is a semantic resolution (success, rejection, deferral, failure)</li>
+    </ul>
+    <p>
+        Many workflows are more accurately modeled as <strong>state machines</strong>, reflecting their temporal nature.
+        Crucially, workflows orchestrate domain behavior but must not encode business rules. They invoke domain rules; they do not define them.
+    </p>
+    <blockquote>
+        <strong>Illustrative example:</strong>
+        A reconciliation workflow may include importing statements, normalizing entries, executing a matching strategy, and publishing a <code>ReconciliationCompleted</code> event.
+        The workflow defines the allowed sequence and resolution of these steps, while matching logic and constraints remain part of the domain model.
+    </blockquote>
+
+    <h3>3.3 Integration Contracts (C)</h3>
+    <p>Integration contracts define how the application relates to the outside world:</p>
+    <p>\[ C = \langle In, Out, V \rangle \]</p>
+    <ul>
+        <li><strong>In</strong>: inbound commands and queries</li>
+        <li><strong>Out</strong>: outbound events and required services</li>
+        <li><strong>V</strong>: versioning and compatibility rules</li>
+    </ul>
+    <p>
+        Contracts are not merely schemas; they encode semantic guarantees—what a message means and what consumers may rely upon.
+    </p>
+    <blockquote>
+        <strong>Illustrative example:</strong>
+        A <code>StatementImported</code> event does not merely indicate that data exists. It semantically guarantees that the statement has passed validation and normalization.
+        Downstream systems rely on this meaning, not on the event’s structure alone.
+    </blockquote>
+
+    <h2>4. A Dependency Principle</h2>
+    <p>For this decomposition to hold, the following principle must apply:</p>
+    <blockquote>
+        <strong>Policy must not depend on details.</strong>
+    </blockquote>
+    <p>
+        The term <em>policy</em> refers to decisions about meaning, rules, and obligations: what is allowed, what must happen, and under what conditions.
+        Policy includes both domain invariants and workflow decisions.
+    </p>
+    <p>
+        <em>Details</em> are mechanisms of execution: databases, messaging, frameworks, protocols, and infrastructure.
+    </p>
+    <p>
+        The principle means that changes in execution mechanisms must not force changes in business meaning or decision logic.
+        When policy depends on details, systems become fragile, difficult to evolve, and resistant to reuse.
+    </p>
+
+    <h2>5. Why This Perspective Is Useful</h2>
+
+    <h3>5.1 Distributed CRUD</h3>
+    <p>
+        Systems that expose databases through APIs often exhibit weak or absent domain models, workflows implicitly encoded in clients,
+        and contracts reduced to structural schemas. Such systems are easy to build and difficult to evolve.
+    </p>
+
+    <h3>5.2 Integration Failures</h3>
+    <p>
+        Many production incidents are not technical failures but contract violations: incompatible assumptions, undocumented semantics, or uncontrolled evolution.
+        These failures are rooted in integration contracts rather than infrastructure.
+    </p>
+
+    <h3>5.3 Long-Lived Systems and Accumulated Policy</h3>
+    <p>
+        Many organizations rely on systems originally built decades ago in a single language or platform, later ported or rewritten in newer technologies without re-examining their underlying structure.
+        While such systems often continue to function, they frequently become difficult to understand, modify, or operate.
+    </p>
+    <p>
+        In these cases, domain policy, workflow decisions, and execution details are tightly interwoven.
+        Business rules become implicit in control flow, data structures, and technical assumptions that were appropriate at the time but are no longer explicit or well understood.
+        Even small changes require deep system knowledge, carry high risk, and lead to increasing maintenance and support costs.
+    </p>
+    <p>
+        This is not a failure of earlier engineers or technologies, but a predictable outcome of long-lived systems evolving without explicit boundaries between policy and execution.
+    </p>
+
+    <h3>5.4 Limited Reuse</h3>
+    <p>
+        Reusability correlates weakly with code reuse and strongly with stable domain vocabulary, explicit contracts, and separation of policy from mechanics.
+    </p>
+
+    <h2>6. Testable Propositions</h2>
+    <p>To qualify as a theory rather than a metaphor, the definition yields falsifiable claims:</p>
+    <ul>
+        <li><strong>P1 — Replaceability:</strong> Two implementations sharing the same ⟨M, W, C⟩ are observationally equivalent to external consumers.</li>
+        <li><strong>P2 — Change Locality:</strong> Most changes can be classified as ΔM, ΔW, or ΔC. ΔM changes are rarer but riskier; ΔW changes are frequent; ΔC changes are costly without explicit versioning.</li>
+        <li><strong>P3 — Defect Taxonomy:</strong> Production defects cluster around violations of domain invariants (M), workflow coordination (W), or contract semantics and evolution (C).</li>
+    </ul>
+
+    <h2>7. Implications for Composition and Reuse</h2>
+    <p>
+        If applications are triples ⟨M, W, C⟩, composition becomes possible at the level of <strong>domain capabilities</strong>, not frameworks or services.
+        A reusable capability owns a domain model, exposes commands, emits events, and evolves via contract versioning.
+        Identity, auditing, reconciliation, reporting, and compliance are examples of such capabilities. Their value lies in correctness and stability rather than novelty.
+    </p>
+
+    <h2>8. Relation to Prior Work</h2>
+    <p>
+        Object-oriented design formalized encapsulation and invariants; Domain-Driven Design elevated domain models and language; Hexagonal architecture clarified dependency direction.
+        This work differs by treating workflows as first-class system elements, elevating integration contracts to equal standing, and proposing a system-level definition of applications.
+    </p>
+
+    <h2>9. Conclusion</h2>
+    <p>
+        As infrastructure becomes commoditized, business complexity emerges as the primary source of software value and risk.
+        A useful theory of applications must therefore focus on meaning, time, and interaction—not on frameworks or deployment models.
+    </p>
+    <p>
+        The equation <strong>Applications = Domain Models + Workflows + Integration Contracts</strong> offers a compact definition that explains failure modes,
+        guides design, and enables reuse of business knowledge across systems. Like Wirth’s equation, its value lies not in novelty, but in clarity.
+    </p>
+</main>
+</body>
+</html>
